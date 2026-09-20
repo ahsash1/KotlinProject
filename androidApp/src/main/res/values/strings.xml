@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Guidance</string>
+    <string name="accessibility_service_description">Points at the button you need to press and reads the instruction aloud. It never presses anything for you.</string>
+</resources>
