@@ -36,7 +36,9 @@ package org.example.project.guidance
  *   5. Set `scrollHint` on any step whose target might be off the first
  *      screen.
  *   6. Build a GuidanceTask with `targetPackage`, a `title` for the launcher
- *      card, and add it to [allTasks].
+ *      card, an `examples` list of phrases someone might actually say to ask
+ *      for this task (used by voice task selection -- VoiceTaskMatcher.kt,
+ *      also in this package), and add it to [allTasks].
  *   7. Reinstall. No other file needs to change.
  *   8. Never write a step for an action with real-world consequences
  *      (submitting a payment, requesting a ride, confirming a booking) --
@@ -107,6 +109,9 @@ object Tasks {
         id = "book_uber_ride",
         title = "Get a ride",
         targetPackage = UBER_PACKAGE,
+        examples = listOf(
+            "get a ride", "go somewhere", "book a car", "call a cab", "call a taxi", "need a ride", "book an uber",
+        ),
         steps = listOf(
             GuidanceStep(
                 instruction = "Tap the search box at the top, type where you're going, then tap the matching address in the list.",
@@ -133,6 +138,14 @@ object Tasks {
                     Matcher.ContentDescContains("UberX,Fare"),
                 ),
             ),
+        ),
+        // The real "Request X" button, verified from the dump (view id
+        // order_selection_request_button). Guidance itself never points at this on purpose (see
+        // the header comment above), but the Help AI CAN act on the user's behalf if explicitly
+        // asked -- this is the human-verified backstop that forces a spoken confirmation before
+        // it's ever allowed to tap this specific button, regardless of what the AI itself thinks.
+        finalActionMatchers = listOf(
+            Matcher.ViewIdEquals("order_selection_request_button"),
         ),
     )
 

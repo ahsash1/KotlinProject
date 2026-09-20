@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -35,6 +36,17 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        // For the optional LLM Lost-rescue feature; blank/missing leaves it inert. Read from
+        // local.properties (gitignored), never committed or hardcoded.
+        val localProps = Properties()
+        val localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) {
+            localProps.load(localPropsFile.inputStream())
+        }
+        buildConfigField("String", "LLM_API_KEY", "\"${localProps.getProperty("llmApiKey", "")}\"")
+        // For the Help feature's OpenAI call; same pattern, blank/missing leaves it inert.
+        buildConfigField("String", "OPENAI_API_KEY", "\"${localProps.getProperty("openAiApiKey", "")}\"")
     }
     packaging {
         resources {
@@ -56,5 +68,6 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }

@@ -22,8 +22,8 @@ sealed interface GuidanceState {
         val step: GuidanceStep,
     ) : GuidanceState
 
-    /** Nothing in the whole task has matched anything on screen for a while. */
-    data class Lost(val task: GuidanceTask) : GuidanceState
+    /** Nothing in the whole task has matched anything on screen for a while; was on [stepIndex]. */
+    data class Lost(val task: GuidanceTask, val stepIndex: Int) : GuidanceState
 
     data class Finished(val task: GuidanceTask) : GuidanceState
 }
@@ -99,7 +99,7 @@ class GuidanceEngine(
             }
 
             if (elapsed >= lostAfterMillis) {
-                _state.value = GuidanceState.Lost(currentTask)
+                _state.value = GuidanceState.Lost(currentTask, stepIndex)
             } else if (elapsed >= stuckAfterMillis) {
                 _state.value = GuidanceState.Stuck(currentTask, stepIndex, step)
             }

@@ -19,7 +19,11 @@ class OverlayController(private val service: AccessibilityService) {
 
     private val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val view = OverlayView(service)
+    private val helpButton = HelpButtonOverlay(service)
     private var attached = false
+
+    /** Set once by the caller; the Help button forwards its taps here. */
+    var onHelpTapped: (() -> Unit)? = null
 
     private val layoutParams = WindowManager.LayoutParams(
         WindowManager.LayoutParams.MATCH_PARENT,
@@ -37,6 +41,22 @@ class OverlayController(private val service: AccessibilityService) {
         ensureAttached()
         view.mode = OverlayView.Mode.POINTING
         view.targetRect = Rect(element.left, element.top, element.right, element.bottom)
+        view.message = message
+    }
+
+    /** Lower-confidence LLM guess, visually distinct (purple) from a verified matcher-based [showPointing]. */
+    fun showAiSuggestion(element: ScreenElement, message: String) {
+        ensureAttached()
+        view.mode = OverlayView.Mode.AI_SUGGESTION
+        view.targetRect = Rect(element.left, element.top, element.right, element.bottom)
+        view.message = message
+    }
+
+    /** Same lower-confidence styling, but nothing specific on screen to ring -- text only. */
+    fun showAiSuggestionTextOnly(message: String) {
+        ensureAttached()
+        view.mode = OverlayView.Mode.AI_SUGGESTION
+        view.targetRect = null
         view.message = message
     }
 
@@ -62,6 +82,7 @@ class OverlayController(private val service: AccessibilityService) {
     }
 
     fun hide() {
+        helpButton.hide()
         if (!attached) return
         try {
             view.stopAnimating()
@@ -74,6 +95,7 @@ class OverlayController(private val service: AccessibilityService) {
     }
 
     private fun ensureAttached() {
+        helpButton.show { onHelpTapped?.invoke() }
         if (attached) return
         try {
             windowManager.addView(view, layoutParams)

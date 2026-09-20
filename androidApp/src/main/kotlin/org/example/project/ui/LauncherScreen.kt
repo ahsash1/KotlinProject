@@ -45,10 +45,14 @@ fun LauncherScreen(
     onStopTask: () -> Unit,
     onSetCaptureMode: (Boolean) -> Unit,
     adbPullCommand: String,
+    voiceEnabled: Boolean = false,
+    /** Starts one listen attempt; calls onDone when it's finished (matched, unmatched, or failed). */
+    onMicTapped: (onDone: () -> Unit) -> Unit = {},
 ) {
     var serviceEnabled by remember { mutableStateOf(isServiceEnabled()) }
     var captureMode by remember { mutableStateOf(false) }
     var activeTaskTitle by remember { mutableStateOf<String?>(null) }
+    var isListening by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -94,6 +98,26 @@ fun LauncherScreen(
                 }
             } else {
                 Text(text = "What do you need help with?", color = Color.White, fontSize = 22.sp)
+
+                if (voiceEnabled) {
+                    Button(
+                        onClick = {
+                            if (!isListening) {
+                                isListening = true
+                                onMicTapped { isListening = false }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(72.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                    ) {
+                        Text(
+                            if (isListening) "Listening..." else "🎤  Or just tell me",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
 
                 tasks.forEach { task ->
                     Button(

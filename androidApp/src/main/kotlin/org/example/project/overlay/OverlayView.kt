@@ -22,7 +22,7 @@ import android.view.animation.LinearInterpolator
  */
 class OverlayView(context: Context) : View(context) {
 
-    enum class Mode { POINTING, STUCK, LOST, FINISHED }
+    enum class Mode { POINTING, AI_SUGGESTION, STUCK, LOST, FINISHED }
 
     var mode: Mode = Mode.POINTING
         set(value) { field = value; invalidate() }
@@ -73,15 +73,16 @@ class OverlayView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         when (mode) {
-            Mode.POINTING -> drawPointing(canvas)
+            Mode.POINTING -> drawPointing(canvas, RING_COLOR, POINTING_COLOR)
+            Mode.AI_SUGGESTION -> drawPointing(canvas, AI_RING_COLOR, AI_SUGGESTION_COLOR)
             Mode.STUCK -> drawBanner(canvas, STUCK_COLOR, message)
             Mode.LOST -> drawBanner(canvas, LOST_COLOR, message)
             Mode.FINISHED -> drawBanner(canvas, FINISHED_COLOR, message)
         }
     }
 
-    private fun drawPointing(canvas: Canvas) {
-        val raw = targetRect ?: return drawBanner(canvas, STUCK_COLOR, message)
+    private fun drawPointing(canvas: Canvas, ringColor: Pair<Int, Int>, bannerColor: Int) {
+        val raw = targetRect ?: return drawBanner(canvas, bannerColor, message)
 
         val clamped = Rect(
             raw.left.coerceIn(0, width),
@@ -90,7 +91,7 @@ class OverlayView(context: Context) : View(context) {
             raw.bottom.coerceIn(0, height),
         )
         if (clamped.width() <= 0 || clamped.height() <= 0) {
-            drawBanner(canvas, STUCK_COLOR, message)
+            drawBanner(canvas, bannerColor, message)
             return
         }
 
@@ -103,13 +104,14 @@ class OverlayView(context: Context) : View(context) {
         val baseRadius = minOf(maxOf(clamped.width(), clamped.height()) / 2f + 12f, MAX_BASE_RADIUS_PX)
         val radius = baseRadius + pulsePhase * 10f
         val alpha = (255 * (1f - pulsePhase * 0.55f)).toInt().coerceIn(60, 255)
+        val (fillRgb, strokeRgb) = ringColor
 
-        ringFillPaint.color = Color.argb((alpha * 0.22f).toInt(), 255, 106, 0)
+        ringFillPaint.color = Color.argb((alpha * 0.22f).toInt(), (fillRgb shr 16) and 0xFF, (fillRgb shr 8) and 0xFF, fillRgb and 0xFF)
         canvas.drawCircle(cx, cy, radius, ringFillPaint)
-        ringStrokePaint.color = Color.argb(alpha, 255, 59, 0)
+        ringStrokePaint.color = Color.argb(alpha, (strokeRgb shr 16) and 0xFF, (strokeRgb shr 8) and 0xFF, strokeRgb and 0xFF)
         canvas.drawCircle(cx, cy, radius, ringStrokePaint)
 
-        drawBanner(canvas, POINTING_COLOR, message, anchorRect = clamped)
+        drawBanner(canvas, bannerColor, message, anchorRect = clamped)
     }
 
     private fun drawBanner(canvas: Canvas, bgColor: Int, text: String, anchorRect: Rect? = null) {
@@ -142,8 +144,14 @@ class OverlayView(context: Context) : View(context) {
     companion object {
         private const val MAX_BASE_RADIUS_PX = 70f
         private val POINTING_COLOR = Color.argb(235, 33, 33, 33)
+        private val AI_SUGGESTION_COLOR = Color.argb(235, 81, 45, 168)
         private val STUCK_COLOR = Color.argb(235, 230, 120, 0)
         private val LOST_COLOR = Color.argb(235, 198, 40, 40)
         private val FINISHED_COLOR = Color.argb(235, 27, 94, 32)
+
+        // (fill rgb, stroke rgb) for the pulsing ring -- orange for a verified match, purple for
+        // a lower-confidence AI guess, so the two are visually distinguishable at a glance.
+        private val RING_COLOR = 0xFF6A00 to 0xFF3B00
+        private val AI_RING_COLOR = 0xB388FF to 0x6A1B9A
     }
 }
